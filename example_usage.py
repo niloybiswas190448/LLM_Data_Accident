@@ -1,266 +1,359 @@
 #!/usr/bin/env python3
 """
-Example Usage Script for Road Accident Analysis Pipeline
-Demonstrates various ways to use the pipeline programmatically
+Example Usage: Bangla Traffic Violation Analysis Pipeline
+========================================================
+
+This script demonstrates how to use the pipeline for specific research scenarios
+and shows various ways to customize and extend the functionality.
 """
 
-import sys
-import os
+import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import json
 
-# Add current directory to path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Import pipeline components
+from bangla_traffic_analysis_pipeline import (
+    BanglaTrafficDataGenerator,
+    BanglaTrafficExtractor,
+    DataStorageManager,
+    TrafficAnalytics
+)
 
-from main import RoadAccidentPipeline
-from utils.logger import get_pipeline_logger
+def example_1_basic_analysis():
+    """
+    Example 1: Basic Traffic Violation Analysis
+    ===========================================
+    
+    This example shows how to run a basic analysis of traffic violations
+    with default settings.
+    """
+    print("📊 Example 1: Basic Traffic Violation Analysis")
+    print("=" * 50)
+    
+    # Initialize components
+    generator = BanglaTrafficDataGenerator()
+    extractor = BanglaTrafficExtractor()
+    storage = DataStorageManager()
+    analytics = TrafficAnalytics()
+    
+    # Generate data
+    print("📝 Generating synthetic data...")
+    sentences = generator.generate_synthetic_bangla_sentences(n=200)
+    
+    # Extract structured data
+    print("🔍 Extracting structured information...")
+    extracted_data = []
+    for sentence in sentences:
+        data = extractor.extract_structured_data(sentence)
+        if data['district'] and data['offense_type']:
+            data['offense_type'] = extractor.standardize_offense_terms(data['offense_type'])
+            extracted_data.append(data)
+    
+    # Create DataFrame
+    df = pd.DataFrame(extracted_data)
+    df = df.dropna(subset=['district', 'offense_type', 'fine_amount'])
+    df['date'] = pd.to_datetime(df['date'])
+    
+    print(f"✅ Processed {len(df)} valid records")
+    
+    # Save data
+    storage.save_output(df)
+    
+    # Generate analytics
+    summary = analytics.generate_summary_statistics(df)
+    
+    # Create visualizations
+    analytics.visualize_offense_distribution(df)
+    analytics.visualize_monthly_trends(df)
+    analytics.visualize_district_analysis(df)
+    
+    return df
 
-def example_basic_usage():
-    """Example 1: Basic pipeline usage"""
-    print("="*60)
-    print("EXAMPLE 1: Basic Pipeline Usage")
-    print("="*60)
+def example_2_district_comparison():
+    """
+    Example 2: District-wise Comparison Analysis
+    ===========================================
     
-    # Initialize pipeline
-    pipeline = RoadAccidentPipeline()
+    This example focuses on comparing traffic violations across different districts.
+    """
+    print("\n🏛️ Example 2: District-wise Comparison Analysis")
+    print("=" * 50)
     
-    # Run complete pipeline
-    results = pipeline.run_full_pipeline()
+    # Generate data with focus on specific districts
+    generator = BanglaTrafficDataGenerator()
+    extractor = BanglaTrafficExtractor()
     
-    # Print results
-    print(f"Pipeline completed: {results['success']}")
-    print(f"Articles scraped: {results['scraped_articles']}")
-    print(f"Records extracted: {results['extracted_records']}")
-    print(f"Records stored: {results['stored_records']}")
-    print(f"Visualizations created: {len(results['visualization_files'])}")
+    # Generate more data for better district comparison
+    sentences = generator.generate_synthetic_bangla_sentences(n=300)
     
-    if results['analysis_report']:
-        stats = results['analysis_report']['summary_stats']
-        print(f"\nSummary Statistics:")
-        print(f"  Total Accidents: {stats['total_accidents']}")
-        print(f"  Total Fatalities: {stats['total_fatalities']}")
-        print(f"  Total Injuries: {stats['total_injuries']}")
+    # Extract and process data
+    extracted_data = []
+    for sentence in sentences:
+        data = extractor.extract_structured_data(sentence)
+        if data['district'] and data['offense_type']:
+            data['offense_type'] = extractor.standardize_offense_terms(data['offense_type'])
+            extracted_data.append(data)
+    
+    df = pd.DataFrame(extracted_data)
+    df = df.dropna(subset=['district', 'offense_type', 'fine_amount'])
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # District-wise analysis
+    print("\n📊 District-wise Statistics:")
+    district_stats = df.groupby('district').agg({
+        'fine_amount': ['count', 'sum', 'mean'],
+        'offense_type': 'nunique'
+    }).round(2)
+    
+    district_stats.columns = ['Violation_Count', 'Total_Fines', 'Average_Fine', 'Unique_Offense_Types']
+    print(district_stats)
+    
+    # Find districts with highest violation rates
+    top_districts = df['district'].value_counts().head(5)
+    print(f"\n🏆 Top 5 Districts by Violation Count:")
+    for district, count in top_districts.items():
+        print(f"  {district}: {count} violations")
+    
+    # Analyze fine distribution by district
+    print(f"\n💰 Fine Analysis by District:")
+    for district in df['district'].unique():
+        district_data = df[df['district'] == district]
+        total_fines = district_data['fine_amount'].sum()
+        avg_fine = district_data['fine_amount'].mean()
+        print(f"  {district}: Total fines = {total_fines:,.0f} BDT, Average = {avg_fine:.0f} BDT")
+    
+    return df
 
-def example_custom_date_range():
-    """Example 2: Analysis for custom date range"""
-    print("\n" + "="*60)
-    print("EXAMPLE 2: Custom Date Range Analysis")
-    print("="*60)
+def example_3_offense_pattern_analysis():
+    """
+    Example 3: Offense Pattern Analysis
+    ===================================
     
-    pipeline = RoadAccidentPipeline()
+    This example analyzes patterns in different types of traffic offenses.
+    """
+    print("\n🚨 Example 3: Offense Pattern Analysis")
+    print("=" * 50)
     
-    # Define custom date range (last 3 months)
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=90)
+    # Generate data
+    generator = BanglaTrafficDataGenerator()
+    extractor = BanglaTrafficExtractor()
     
-    # Generate report for custom period
-    report = pipeline.analyzer.generate_summary_report(start_date, end_date)
+    sentences = generator.generate_synthetic_bangla_sentences(n=250)
     
-    print(f"Analysis Period: {start_date.date()} to {end_date.date()}")
-    print(f"Total Days: {report['period']['total_days']}")
+    # Extract and process data
+    extracted_data = []
+    for sentence in sentences:
+        data = extractor.extract_structured_data(sentence)
+        if data['district'] and data['offense_type']:
+            data['offense_type'] = extractor.standardize_offense_terms(data['offense_type'])
+            extracted_data.append(data)
     
-    stats = report['summary_stats']
-    print(f"\nStatistics for the period:")
-    print(f"  Total Accidents: {stats['total_accidents']}")
-    print(f"  Fatal Accidents: {stats['fatal_accidents']}")
-    print(f"  Major Accidents: {stats['major_accidents']}")
-    print(f"  Minor Accidents: {stats['minor_accidents']}")
+    df = pd.DataFrame(extracted_data)
+    df = df.dropna(subset=['district', 'offense_type', 'fine_amount'])
+    df['date'] = pd.to_datetime(df['date'])
     
-    # Show insights
-    if report['insights']:
-        insights = report['insights']
-        if 'most_dangerous_district' in insights:
-            district = insights['most_dangerous_district']
-            print(f"\nMost Dangerous District: {district['name']}")
-            print(f"  Accidents: {district['accidents']}")
-            print(f"  Fatalities: {district['fatalities']}")
-        
-        if 'trend' in insights:
-            print(f"\nTrend: {insights['trend']} ({insights['trend_percentage']:.1f}%)")
+    # Offense type analysis
+    print("\n📋 Offense Type Analysis:")
+    offense_stats = df.groupby('offense_type').agg({
+        'fine_amount': ['count', 'sum', 'mean'],
+        'district': 'nunique'
+    }).round(2)
+    
+    offense_stats.columns = ['Occurrence_Count', 'Total_Fines', 'Average_Fine', 'Districts_Affected']
+    print(offense_stats)
+    
+    # Most common offenses
+    print(f"\n🔥 Most Common Offenses:")
+    common_offenses = df['offense_type'].value_counts().head(5)
+    for offense, count in common_offenses.items():
+        percentage = (count / len(df)) * 100
+        print(f"  {offense}: {count} times ({percentage:.1f}%)")
+    
+    # Fine analysis by offense type
+    print(f"\n💰 Fine Analysis by Offense Type:")
+    for offense in df['offense_type'].unique():
+        offense_data = df[df['offense_type'] == offense]
+        total_fines = offense_data['fine_amount'].sum()
+        avg_fine = offense_data['fine_amount'].mean()
+        count = len(offense_data)
+        print(f"  {offense}: {count} violations, Total = {total_fines:,.0f} BDT, Avg = {avg_fine:.0f} BDT")
+    
+    # Vehicle type vs offense analysis
+    print(f"\n🚗 Vehicle Type vs Offense Analysis:")
+    vehicle_offense = df.groupby(['vehicle_type', 'offense_type']).size().unstack(fill_value=0)
+    print(vehicle_offense)
+    
+    return df
 
-def example_monthly_report():
-    """Example 3: Generate monthly report"""
-    print("\n" + "="*60)
-    print("EXAMPLE 3: Monthly Report Generation")
-    print("="*60)
+def example_4_temporal_analysis():
+    """
+    Example 4: Temporal Pattern Analysis
+    ====================================
     
-    pipeline = RoadAccidentPipeline()
+    This example analyzes how traffic violations change over time.
+    """
+    print("\n📅 Example 4: Temporal Pattern Analysis")
+    print("=" * 50)
     
-    # Generate report for last month
-    current_date = datetime.now()
-    last_month = current_date.replace(day=1) - timedelta(days=1)
-    year = last_month.year
-    month = last_month.month
+    # Generate data
+    generator = BanglaTrafficDataGenerator()
+    extractor = BanglaTrafficExtractor()
     
-    print(f"Generating monthly report for {year}-{month:02d}")
+    sentences = generator.generate_synthetic_bangla_sentences(n=400)
     
-    results = pipeline.run_monthly_report(year, month)
+    # Extract and process data
+    extracted_data = []
+    for sentence in sentences:
+        data = extractor.extract_structured_data(sentence)
+        if data['district'] and data['offense_type']:
+            data['offense_type'] = extractor.standardize_offense_terms(data['offense_type'])
+            extracted_data.append(data)
     
-    if results['success']:
-        print("Monthly report generated successfully!")
-        print(f"Visualizations created: {len(results['visualizations'])}")
-        print(f"CSV export: {results['csv_export']}")
-        
-        # Show report summary
-        report = results['report']
-        stats = report['summary_stats']
-        print(f"\nMonthly Summary:")
-        print(f"  Accidents: {stats['total_accidents']}")
-        print(f"  Fatalities: {stats['total_fatalities']}")
-        print(f"  Injuries: {stats['total_injuries']}")
+    df = pd.DataFrame(extracted_data)
+    df = df.dropna(subset=['district', 'offense_type', 'fine_amount'])
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # Add temporal features
+    df['month'] = df['date'].dt.month
+    df['day_of_week'] = df['date'].dt.day_name()
+    df['quarter'] = df['date'].dt.quarter
+    
+    # Monthly analysis
+    print("\n📊 Monthly Violation Patterns:")
+    monthly_stats = df.groupby('month').agg({
+        'fine_amount': ['count', 'sum', 'mean']
+    }).round(2)
+    
+    monthly_stats.columns = ['Violation_Count', 'Total_Fines', 'Average_Fine']
+    print(monthly_stats)
+    
+    # Day of week analysis
+    print(f"\n📅 Day of Week Analysis:")
+    dow_stats = df.groupby('day_of_week').agg({
+        'fine_amount': ['count', 'sum', 'mean']
+    }).round(2)
+    
+    dow_stats.columns = ['Violation_Count', 'Total_Fines', 'Average_Fine']
+    print(dow_stats)
+    
+    # Quarterly analysis
+    print(f"\n📈 Quarterly Analysis:")
+    quarterly_stats = df.groupby('quarter').agg({
+        'fine_amount': ['count', 'sum', 'mean']
+    }).round(2)
+    
+    quarterly_stats.columns = ['Violation_Count', 'Total_Fines', 'Average_Fine']
+    print(quarterly_stats)
+    
+    # Time series visualization
+    analytics = TrafficAnalytics()
+    analytics.visualize_monthly_trends(df)
+    
+    return df
+
+def example_5_research_insights():
+    """
+    Example 5: Research Insights and Policy Recommendations
+    ======================================================
+    
+    This example demonstrates how to extract research insights and generate
+    policy recommendations from the analysis.
+    """
+    print("\n🎓 Example 5: Research Insights and Policy Recommendations")
+    print("=" * 60)
+    
+    # Run comprehensive analysis
+    df = example_1_basic_analysis()
+    
+    print("\n🔬 RESEARCH INSIGHTS:")
+    print("-" * 30)
+    
+    # Insight 1: Most problematic offenses
+    most_common_offense = df['offense_type'].mode().iloc[0]
+    most_common_count = df[df['offense_type'] == most_common_offense].shape[0]
+    print(f"1. Most Common Offense: {most_common_offense} ({most_common_count} cases)")
+    
+    # Insight 2: District with highest violations
+    highest_violation_district = df['district'].mode().iloc[0]
+    district_violations = df[df['district'] == highest_violation_district].shape[0]
+    print(f"2. District with Most Violations: {highest_violation_district} ({district_violations} cases)")
+    
+    # Insight 3: Financial impact
+    total_revenue = df['fine_amount'].sum()
+    avg_fine = df['fine_amount'].mean()
+    print(f"3. Total Fine Revenue: {total_revenue:,.0f} BDT")
+    print(f"4. Average Fine Amount: {avg_fine:.0f} BDT")
+    
+    # Insight 4: Enforcement effectiveness
+    unique_districts = df['district'].nunique()
+    unique_offenses = df['offense_type'].nunique()
+    print(f"5. Geographic Coverage: {unique_districts} districts")
+    print(f"6. Offense Types Covered: {unique_offenses} categories")
+    
+    print("\n📋 POLICY RECOMMENDATIONS:")
+    print("-" * 30)
+    
+    # Recommendation 1: Focus on most common offense
+    print(f"1. Prioritize enforcement for '{most_common_offense}' violations")
+    
+    # Recommendation 2: District-specific strategies
+    print(f"2. Develop targeted strategies for {highest_violation_district} district")
+    
+    # Recommendation 3: Fine optimization
+    if avg_fine < 2000:
+        print("3. Consider increasing fine amounts for better deterrent effect")
     else:
-        print(f"Report generation failed: {results['error']}")
-
-def example_data_retrieval():
-    """Example 4: Retrieve and analyze specific data"""
-    print("\n" + "="*60)
-    print("EXAMPLE 4: Data Retrieval and Analysis")
-    print("="*60)
+        print("3. Current fine levels appear appropriate")
     
-    pipeline = RoadAccidentPipeline()
+    # Recommendation 4: Resource allocation
+    print("4. Allocate enforcement resources based on violation frequency by district")
     
-    # Get recent accidents (last 30 days)
-    recent_data = pipeline.data_manager.get_accidents(
-        start_date=datetime.now() - timedelta(days=30),
-        limit=10
-    )
+    # Recommendation 5: Monitoring and evaluation
+    print("5. Establish regular monitoring system for violation trends")
     
-    print(f"Recent accidents (last 30 days): {len(recent_data)}")
+    print("\n📊 RESEARCH METHODOLOGY:")
+    print("-" * 30)
+    print("• Data Source: Synthetic Bangla traffic violation reports")
+    print("• Analysis Period: 12 months")
+    print("• Geographic Coverage: 10 major districts")
+    print("• Offense Categories: 11 violation types")
+    print("• Statistical Methods: Descriptive analysis, trend analysis")
+    print("• Visualization: Bar charts, time series, heatmaps")
     
-    if not recent_data.empty:
-        print("\nRecent Accident Details:")
-        for idx, row in recent_data.head(5).iterrows():
-            print(f"  {row['date'].date()}: {row['district']} - {row['fatalities']} fatalities")
-    
-    # Get district statistics
-    district_stats = pipeline.data_manager.get_district_stats()
-    
-    if not district_stats.empty:
-        print(f"\nTop 5 Districts by Accident Count:")
-        for district, stats in district_stats.head(5).iterrows():
-            print(f"  {district}: {stats['total_accidents']} accidents, {stats['fatalities']} fatalities")
-    
-    # Get monthly trends
-    monthly_trends = pipeline.data_manager.get_monthly_trends()
-    
-    if not monthly_trends.empty:
-        print(f"\nRecent Monthly Trends:")
-        for period, stats in monthly_trends.tail(3).iterrows():
-            print(f"  {period}: {stats['total_accidents']} accidents, {stats['fatalities']} fatalities")
-
-def example_custom_analysis():
-    """Example 5: Custom analysis scenarios"""
-    print("\n" + "="*60)
-    print("EXAMPLE 5: Custom Analysis Scenarios")
-    print("="*60)
-    
-    pipeline = RoadAccidentPipeline()
-    
-    # Scenario 1: Fatal accidents only
-    fatal_accidents = pipeline.data_manager.get_accidents(severity='fatal')
-    print(f"Total fatal accidents: {len(fatal_accidents)}")
-    
-    if not fatal_accidents.empty:
-        avg_fatalities = fatal_accidents['fatalities'].mean()
-        print(f"Average fatalities per fatal accident: {avg_fatalities:.1f}")
-    
-    # Scenario 2: Accidents in specific district
-    dhaka_accidents = pipeline.data_manager.get_accidents(district='Dhaka')
-    print(f"Accidents in Dhaka: {len(dhaka_accidents)}")
-    
-    if not dhaka_accidents.empty:
-        dhaka_stats = pipeline.data_manager.get_summary_stats()
-        print(f"Dhaka accident statistics:")
-        print(f"  Total: {len(dhaka_accidents)}")
-        print(f"  Fatalities: {dhaka_accidents['fatalities'].sum()}")
-        print(f"  Injuries: {dhaka_accidents['injuries'].sum()}")
-    
-    # Scenario 3: Vehicle type analysis
-    all_accidents = pipeline.data_manager.get_accidents()
-    if not all_accidents.empty:
-        vehicle_types = all_accidents['vehicle_types'].value_counts()
-        print(f"\nVehicle Types Involved:")
-        for vehicle_type, count in vehicle_types.head(5).items():
-            if vehicle_type:
-                print(f"  {vehicle_type}: {count} accidents")
-
-def example_system_management():
-    """Example 6: System management operations"""
-    print("\n" + "="*60)
-    print("EXAMPLE 6: System Management")
-    print("="*60)
-    
-    pipeline = RoadAccidentPipeline()
-    
-    # Check system status
-    status = pipeline.get_system_status()
-    print("System Status:")
-    for key, value in status.items():
-        print(f"  {key}: {value}")
-    
-    # Export data to CSV
-    csv_file = pipeline.data_manager.export_to_csv()
-    if csv_file:
-        print(f"\nData exported to: {csv_file}")
-    
-    # Create database backup
-    backup_path = pipeline.backup_database()
-    if backup_path:
-        print(f"Database backed up to: {backup_path}")
-
-def example_error_handling():
-    """Example 7: Error handling demonstration"""
-    print("\n" + "="*60)
-    print("EXAMPLE 7: Error Handling")
-    print("="*60)
-    
-    pipeline = RoadAccidentPipeline()
-    
-    try:
-        # Try to get data for a very old date range (should be empty)
-        old_data = pipeline.data_manager.get_accidents(
-            start_date=datetime(2020, 1, 1),
-            end_date=datetime(2020, 1, 31)
-        )
-        
-        if old_data.empty:
-            print("No data found for the specified period (expected)")
-        else:
-            print(f"Found {len(old_data)} records for old period")
-            
-    except Exception as e:
-        print(f"Error handled gracefully: {str(e)}")
-    
-    # Test with invalid parameters
-    try:
-        invalid_data = pipeline.data_manager.get_accidents(district='NonExistentDistrict')
-        print(f"Invalid district query returned {len(invalid_data)} records")
-    except Exception as e:
-        print(f"Error with invalid parameters: {str(e)}")
+    return df
 
 def main():
-    """Run all examples"""
-    print("Road Accident Analysis Pipeline - Example Usage")
-    print("This script demonstrates various ways to use the pipeline")
+    """
+    Main function to run all examples.
+    """
+    print("🚀 Bangla Traffic Violation Analysis Pipeline - Examples")
+    print("=" * 60)
     
-    # Run examples
-    example_basic_usage()
-    example_custom_date_range()
-    example_monthly_report()
-    example_data_retrieval()
-    example_custom_analysis()
-    example_system_management()
-    example_error_handling()
-    
-    print("\n" + "="*60)
-    print("All examples completed!")
-    print("="*60)
-    print("\nTo run the pipeline manually, use:")
-    print("  python main.py")
-    print("\nFor automated scheduling:")
-    print("  python main.py --mode schedule")
-    print("\nFor more options:")
-    print("  python main.py --help")
+    try:
+        # Run all examples
+        print("\n" + "="*60)
+        example_1_basic_analysis()
+        
+        print("\n" + "="*60)
+        example_2_district_comparison()
+        
+        print("\n" + "="*60)
+        example_3_offense_pattern_analysis()
+        
+        print("\n" + "="*60)
+        example_4_temporal_analysis()
+        
+        print("\n" + "="*60)
+        example_5_research_insights()
+        
+        print("\n" + "="*60)
+        print("✅ All examples completed successfully!")
+        print("🎯 Pipeline is ready for research and policy analysis")
+        print("📚 Data and visualizations saved for further analysis")
+        
+    except Exception as e:
+        print(f"\n❌ Error running examples: {e}")
+        print("🔧 Please check your dependencies and try again")
 
 if __name__ == "__main__":
     main()

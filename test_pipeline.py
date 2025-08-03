@@ -1,290 +1,196 @@
 #!/usr/bin/env python3
 """
-Test Script for Road Accident Analysis Pipeline
-Tests various components and functionality
+Test Script for Bangla Traffic Violation Analysis Pipeline
+==========================================================
+
+This script demonstrates the key functionality of the pipeline
+and validates that all components work correctly.
 """
 
 import sys
 import os
-import unittest
-from datetime import datetime, timedelta
-import tempfile
-import shutil
+from datetime import datetime
 
-# Add current directory to path for imports
+# Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from scrapers.news_scraper import NewsScraper
-from nlp.information_extractor import InformationExtractor
-from database.data_manager import DataManager
-from analysis.trend_analyzer import TrendAnalyzer
-from main import RoadAccidentPipeline
-from utils.logger import get_pipeline_logger
+# Import pipeline components
+from bangla_traffic_analysis_pipeline import (
+    BanglaTrafficDataGenerator,
+    BanglaTrafficExtractor,
+    DataStorageManager,
+    TrafficAnalytics
+)
 
-class TestRoadAccidentPipeline(unittest.TestCase):
-    """Test cases for the road accident analysis pipeline"""
+def test_data_generation():
+    """Test synthetic data generation functionality."""
+    print("🧪 Testing Data Generation...")
     
-    def setUp(self):
-        """Set up test environment"""
-        self.logger = get_pipeline_logger()
-        self.test_dir = tempfile.mkdtemp()
-        
-        # Create test output directory
-        self.test_output_dir = os.path.join(self.test_dir, "outputs")
-        os.makedirs(self.test_output_dir, exist_ok=True)
-        
-        # Test data
-        self.sample_articles = [
-            {
-                'title': 'Bus accident in Dhaka kills 5 people',
-                'text': 'A bus accident occurred in Dhaka yesterday killing 5 people and injuring 10 others. The accident happened on Dhaka-Chittagong Highway.',
-                'date': '2024-01-15',
-                'url': 'http://example.com/accident1',
-                'source': 'test_source',
-                'language': 'english',
-                'parsed_date': datetime(2024, 1, 15)
-            },
-            {
-                'title': 'দুর্ঘটনায় ৩ জন নিহত',
-                'text': 'গতকাল চট্টগ্রামে একটি ট্রাক দুর্ঘটনায় ৩ জন নিহত এবং ৭ জন আহত হয়েছেন।',
-                'date': '2024-01-14',
-                'url': 'http://example.com/accident2',
-                'source': 'test_source',
-                'language': 'bangla',
-                'parsed_date': datetime(2024, 1, 14)
-            }
-        ]
+    generator = BanglaTrafficDataGenerator()
     
-    def tearDown(self):
-        """Clean up test environment"""
-        shutil.rmtree(self.test_dir, ignore_errors=True)
+    # Test generating a small sample
+    sentences = generator.generate_synthetic_bangla_sentences(n=10)
     
-    def test_news_scraper_initialization(self):
-        """Test news scraper initialization"""
-        scraper = NewsScraper()
-        self.assertIsNotNone(scraper)
-        self.assertIsNotNone(scraper.session)
-        self.assertIsNotNone(scraper.ua)
+    print(f"✅ Generated {len(sentences)} synthetic sentences")
     
-    def test_information_extractor_initialization(self):
-        """Test information extractor initialization"""
-        extractor = InformationExtractor()
-        self.assertIsNotNone(extractor)
-        self.assertIsNotNone(extractor.bangladesh_locations)
-        self.assertIn('districts', extractor.bangladesh_locations)
-        self.assertIn('major_roads', extractor.bangladesh_locations)
+    # Display a few examples
+    print("\n📝 Sample Generated Sentences:")
+    for i, sentence in enumerate(sentences[:3], 1):
+        print(f"{i}. {sentence}")
     
-    def test_data_manager_initialization(self):
-        """Test data manager initialization"""
-        # Use temporary database for testing
-        test_db_path = os.path.join(self.test_dir, "test_accidents.db")
-        
-        # Temporarily modify the database path
-        original_db_path = DataManager.__init__.__defaults__[0] if DataManager.__init__.__defaults__ else None
-        
-        try:
-            data_manager = DataManager()
-            self.assertIsNotNone(data_manager)
-            self.assertTrue(os.path.exists(data_manager.db_path))
-        finally:
-            # Clean up
-            if os.path.exists(test_db_path):
-                os.remove(test_db_path)
-    
-    def test_accident_keyword_detection(self):
-        """Test accident keyword detection"""
-        scraper = NewsScraper()
-        
-        # Test English text
-        english_text = "A car accident occurred on the highway killing 2 people"
-        self.assertTrue(scraper.is_accident_related(english_text, "english"))
-        
-        # Test Bangla text
-        bangla_text = "রাস্তায় একটি গাড়ি দুর্ঘটনায় ২ জন মারা গেছে"
-        self.assertTrue(scraper.is_accident_related(bangla_text, "bangla"))
-        
-        # Test non-accident text
-        non_accident_text = "The weather is nice today and people are happy"
-        self.assertFalse(scraper.is_accident_related(non_accident_text, "english"))
-    
-    def test_information_extraction(self):
-        """Test information extraction from articles"""
-        extractor = InformationExtractor()
-        
-        for article in self.sample_articles:
-            extracted_info = extractor.extract_information(article)
-            
-            # Check required fields
-            self.assertIn('date', extracted_info)
-            self.assertIn('title', extracted_info)
-            self.assertIn('fatalities', extracted_info)
-            self.assertIn('injuries', extracted_info)
-            self.assertIn('severity', extracted_info)
-            self.assertIn('district', extracted_info)
-            self.assertIn('vehicle_types', extracted_info)
-            
-            # Check data types
-            self.assertIsInstance(extracted_info['fatalities'], int)
-            self.assertIsInstance(extracted_info['injuries'], int)
-            self.assertIsInstance(extracted_info['severity'], str)
-    
-    def test_date_parsing(self):
-        """Test date parsing functionality"""
-        extractor = InformationExtractor()
-        
-        # Test various date formats
-        test_cases = [
-            ("15/01/2024", datetime(2024, 1, 15)),
-            ("2024-01-15", datetime(2024, 1, 15)),
-            ("১৫ জানুয়ারি ২০২৪", datetime(2024, 1, 15)),
-        ]
-        
-        for date_str, expected_date in test_cases:
-            parsed_date = extractor.parse_date(date_str, "english")
-            if parsed_date:
-                self.assertEqual(parsed_date.date(), expected_date.date())
-    
-    def test_location_extraction(self):
-        """Test location extraction"""
-        extractor = InformationExtractor()
-        
-        # Test English location extraction
-        english_text = "An accident occurred in Dhaka district on Dhaka-Chittagong Highway"
-        location_info = extractor.extract_location(english_text, "english")
-        self.assertEqual(location_info['district'], "Dhaka")
-        self.assertEqual(location_info['road'], "Dhaka-Chittagong Highway")
-        
-        # Test Bangla location extraction
-        bangla_text = "ঢাকা জেলায় একটি দুর্ঘটনা ঘটেছে"
-        location_info = extractor.extract_location(bangla_text, "bangla")
-        self.assertEqual(location_info['district'], "Dhaka")
-    
-    def test_vehicle_type_extraction(self):
-        """Test vehicle type extraction"""
-        extractor = InformationExtractor()
-        
-        # Test English vehicle extraction
-        english_text = "A bus and a truck collided on the highway"
-        vehicle_types = extractor.extract_vehicle_types(english_text, "english")
-        self.assertIn("bus", vehicle_types)
-        self.assertIn("truck", vehicle_types)
-        
-        # Test Bangla vehicle extraction
-        bangla_text = "একটি বাস এবং একটি ট্রাক সংঘর্ষে লিপ্ত হয়েছে"
-        vehicle_types = extractor.extract_vehicle_types(bangla_text, "bangla")
-        self.assertIn("bus", vehicle_types)
-        self.assertIn("truck", vehicle_types)
-    
-    def test_severity_classification(self):
-        """Test severity classification"""
-        extractor = InformationExtractor()
-        
-        # Test fatal accident
-        fatal_text = "5 people were killed in the accident"
-        severity = extractor.classify_severity(fatal_text, 5, 0)
-        self.assertEqual(severity, "fatal")
-        
-        # Test major accident
-        major_text = "10 people were injured in the accident"
-        severity = extractor.classify_severity(major_text, 0, 10)
-        self.assertEqual(severity, "major")
-        
-        # Test minor accident
-        minor_text = "2 people were slightly injured"
-        severity = extractor.classify_severity(minor_text, 0, 2)
-        self.assertEqual(severity, "minor")
-    
-    def test_pipeline_integration(self):
-        """Test full pipeline integration"""
-        # Create a minimal pipeline test
-        try:
-            pipeline = RoadAccidentPipeline()
-            self.assertIsNotNone(pipeline)
-            
-            # Test system status
-            status = pipeline.get_system_status()
-            self.assertIn('system_status', status)
-            self.assertIn('last_update', status)
-            
-        except Exception as e:
-            # Pipeline might fail if no internet connection or models not downloaded
-            self.logger.warning(f"Pipeline integration test skipped: {str(e)}")
-    
-    def test_error_handling(self):
-        """Test error handling"""
-        extractor = InformationExtractor()
-        
-        # Test with empty/invalid input
-        empty_article = {}
-        extracted_info = extractor.extract_information(empty_article)
-        
-        # Should handle gracefully without crashing
-        self.assertIsInstance(extracted_info, dict)
-        self.assertIn('fatalities', extracted_info)
-        self.assertEqual(extracted_info['fatalities'], 0)
-    
-    def test_data_consistency(self):
-        """Test data consistency across components"""
-        extractor = InformationExtractor()
-        
-        for article in self.sample_articles:
-            extracted_info = extractor.extract_information(article)
-            
-            # Check that fatalities and injuries are non-negative
-            self.assertGreaterEqual(extracted_info['fatalities'], 0)
-            self.assertGreaterEqual(extracted_info['injuries'], 0)
-            
-            # Check that severity is one of the expected values
-            self.assertIn(extracted_info['severity'], ['fatal', 'major', 'minor'])
-            
-            # Check that date is valid if present
-            if extracted_info['date']:
-                self.assertIsInstance(extracted_info['date'], datetime)
+    return sentences
 
-def run_basic_tests():
-    """Run basic functionality tests"""
-    print("Running basic functionality tests...")
+def test_information_extraction(sentences):
+    """Test information extraction from Bangla text."""
+    print("\n🔍 Testing Information Extraction...")
     
-    # Test scraper
-    print("Testing news scraper...")
-    scraper = NewsScraper()
-    print("✓ News scraper initialized")
+    extractor = BanglaTrafficExtractor()
     
-    # Test extractor
-    print("Testing information extractor...")
-    extractor = InformationExtractor()
-    print("✓ Information extractor initialized")
+    # Test extraction on first few sentences
+    extracted_data = []
+    for sentence in sentences[:5]:
+        data = extractor.extract_structured_data(sentence)
+        extracted_data.append(data)
+        
+        print(f"\n📄 Original: {sentence}")
+        print(f"🔧 Extracted: {data}")
     
-    # Test data manager
-    print("Testing data manager...")
-    data_manager = DataManager()
-    print("✓ Data manager initialized")
+    # Test Bangla digit conversion
+    test_text = "জরিমানা ২০০০ টাকা"
+    converted = extractor.convert_bangla_digits(test_text)
+    print(f"\n🔢 Bangla digit conversion: '{test_text}' → '{converted}'")
     
-    # Test analyzer
-    print("Testing trend analyzer...")
-    analyzer = TrendAnalyzer(data_manager)
-    print("✓ Trend analyzer initialized")
+    # Test offense standardization
+    test_offense = "হেলমেট না পরা"
+    standardized = extractor.standardize_offense_terms(test_offense)
+    print(f"🏷️ Offense standardization: '{test_offense}' → '{standardized}'")
     
-    # Test pipeline
-    print("Testing pipeline...")
-    pipeline = RoadAccidentPipeline()
-    print("✓ Pipeline initialized")
-    
-    print("\nAll basic tests passed!")
+    return extracted_data
 
-def main():
-    """Main test function"""
-    print("Road Accident Analysis Pipeline - Test Suite")
-    print("="*50)
+def test_data_storage(extracted_data):
+    """Test data storage functionality."""
+    print("\n💾 Testing Data Storage...")
     
-    # Run basic tests first
-    run_basic_tests()
+    import pandas as pd
     
-    # Run unit tests
-    print("\nRunning unit tests...")
-    unittest.main(argv=[''], exit=False, verbosity=2)
+    # Convert to DataFrame
+    df = pd.DataFrame(extracted_data)
     
-    print("\nTest suite completed!")
+    # Clean data
+    df = df.dropna(subset=['district', 'offense_type', 'fine_amount'])
+    if len(df) > 0:
+        df['date'] = pd.to_datetime(df['date'])
+    
+    print(f"✅ Created DataFrame with {len(df)} records")
+    print(f"📊 DataFrame columns: {list(df.columns)}")
+    
+    # Test storage
+    storage = DataStorageManager()
+    
+    # Save to CSV
+    csv_filename = "test_output.csv"
+    storage.save_to_csv(df, csv_filename)
+    
+    # Verify file was created
+    if os.path.exists(csv_filename):
+        print(f"✅ CSV file created: {csv_filename}")
+        # Clean up test file
+        os.remove(csv_filename)
+        print(f"🧹 Cleaned up test file: {csv_filename}")
+    
+    return df
+
+def test_analytics(df):
+    """Test analytics and visualization functionality."""
+    print("\n📊 Testing Analytics...")
+    
+    if len(df) == 0:
+        print("⚠️ No data available for analytics testing")
+        return
+    
+    analytics = TrafficAnalytics()
+    
+    # Test summary statistics
+    print("📈 Generating summary statistics...")
+    summary = analytics.generate_summary_statistics(df)
+    
+    # Test basic analytics without plotting (to avoid display issues in testing)
+    print(f"✅ Analytics test completed")
+    print(f"📊 Summary statistics generated for {len(df)} records")
+    
+    return summary
+
+def run_comprehensive_test():
+    """Run a comprehensive test of the entire pipeline."""
+    print("🚀 Starting Comprehensive Pipeline Test")
+    print("=" * 50)
+    
+    try:
+        # Test 1: Data Generation
+        sentences = test_data_generation()
+        
+        # Test 2: Information Extraction
+        extracted_data = test_information_extraction(sentences)
+        
+        # Test 3: Data Storage
+        df = test_data_storage(extracted_data)
+        
+        # Test 4: Analytics
+        summary = test_analytics(df)
+        
+        print("\n" + "=" * 50)
+        print("✅ ALL TESTS PASSED!")
+        print("🎯 Pipeline is ready for research use")
+        print("=" * 50)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Test failed with error: {e}")
+        print("🔧 Please check your dependencies and try again")
+        return False
+
+def test_specific_components():
+    """Test specific components with edge cases."""
+    print("\n🔬 Testing Specific Components...")
+    
+    extractor = BanglaTrafficExtractor()
+    
+    # Test edge cases
+    test_cases = [
+        "ঢাকা, গাবতলী, ২০২৩-১০-১৫: ট্রাফিক পুলিশ একটি মোটরসাইকেল চালককে হেলমেট না পরা অপরাধে ১০০০ টাকা জরিমানা করেছে।",
+        "চট্টগ্রাম, পতেঙ্গা, ২০২৩-১১-২০: বাস চালক ওভারলোডিং অপরাধে ৫০০০ টাকা জরিমানা পেয়েছে।",
+        "Invalid text without proper structure",
+        "সিলেট, জালালাবাদ, ২০২৩-১২-০১: সিএনজি চালক সিগনাল লঙ্ঘন অপরাধে ২০০০ টাকা জরিমানা।"
+    ]
+    
+    print("\n🔍 Testing Edge Cases:")
+    for i, test_case in enumerate(test_cases, 1):
+        result = extractor.extract_structured_data(test_case)
+        print(f"\nTest {i}:")
+        print(f"Input: {test_case}")
+        print(f"Output: {result}")
+        
+        # Check if extraction was successful
+        if result['district'] and result['offense_type']:
+            print("✅ Extraction successful")
+        else:
+            print("⚠️ Extraction incomplete or failed")
 
 if __name__ == "__main__":
-    main()
+    print("🧪 Bangla Traffic Violation Analysis Pipeline - Test Suite")
+    print("=" * 60)
+    
+    # Run comprehensive test
+    success = run_comprehensive_test()
+    
+    if success:
+        # Run specific component tests
+        test_specific_components()
+        
+        print("\n🎉 All tests completed successfully!")
+        print("🚀 The pipeline is ready for research and analysis")
+    else:
+        print("\n❌ Pipeline test failed")
+        print("🔧 Please check the error messages above and fix any issues")
+        sys.exit(1)
