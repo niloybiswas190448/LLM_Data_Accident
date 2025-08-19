@@ -1,150 +1,313 @@
 """
-Configuration file for Road Accident Analysis Pipeline
-Contains all settings, URLs, and parameters for the automated system
+Configuration file for Pneumonia Detection with Explainable AI
 """
 
 import os
-from datetime import datetime, timedelta
+from pathlib import Path
 
-# Database Configuration
-DATABASE_PATH = "road_accidents.db"
-CSV_OUTPUT_PATH = "accident_data.csv"
+# Project paths
+PROJECT_ROOT = Path(__file__).parent
+DATA_DIR = PROJECT_ROOT / "data"
+MODELS_DIR = PROJECT_ROOT / "models"
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+LOGS_DIR = PROJECT_ROOT / "logs"
 
-# News Sources Configuration
-NEWS_SOURCES = {
-    "prothom_alo": {
-        "base_url": "https://www.prothomalo.com",
-        "search_url": "https://www.prothomalo.com/search?q={query}",
-        "language": "bangla",
-        "selectors": {
-            "article_links": "h3 a, .headline a",
-            "title": "h1, .headline",
-            "content": ".content, .article-content",
-            "date": ".time, .published-date",
-            "pagination": ".pagination a"
-        }
+# Create directories if they don't exist
+for dir_path in [DATA_DIR, MODELS_DIR, OUTPUTS_DIR, LOGS_DIR]:
+    dir_path.mkdir(exist_ok=True)
+
+# Dataset configurations
+DATASETS = {
+    "chest_xray": {
+        "name": "Chest X-Ray Images (Pneumonia)",
+        "url": "https://storage.googleapis.com/kaggle-datasets-images/12/19/chest-xray-pneumonia.zip",
+        "kaggle_dataset": "paultimothymooney/chest-xray-pneumonia",
+        "classes": ["NORMAL", "PNEUMONIA"],
+        "pneumonia_subtypes": ["BACTERIA", "VIRUS"],
+        "image_size": (224, 224),
+        "train_split": 0.8,
+        "val_split": 0.1,
+        "test_split": 0.1,
+        "augmentation": True
     },
-    "daily_star": {
-        "base_url": "https://www.thedailystar.net",
-        "search_url": "https://www.thedailystar.net/search?q={query}",
-        "language": "english",
-        "selectors": {
-            "article_links": ".article-title a, h3 a",
-            "title": "h1, .article-title",
-            "content": ".article-content, .content",
-            "date": ".published-date, .date",
-            "pagination": ".pagination a"
-        }
-    },
-    "ittefaq": {
-        "base_url": "https://www.ittefaq.com.bd",
-        "search_url": "https://www.ittefaq.com.bd/search?q={query}",
-        "language": "bangla",
-        "selectors": {
-            "article_links": ".headline a, h3 a",
-            "title": "h1, .headline",
-            "content": ".content, .article-content",
-            "date": ".time, .published-date",
-            "pagination": ".pagination a"
-        }
+    "nih_cxr14": {
+        "name": "NIH Chest X-ray14",
+        "url": "https://storage.googleapis.com/nih-chest-xrays/images/images_001/images_001.tar.gz",
+        "classes": ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusion", 
+                   "Emphysema", "Fibrosis", "Hernia", "Infiltration", "Mass", 
+                   "Nodule", "Pleural_Thickening", "Pneumonia", "Pneumothorax"],
+        "image_size": (224, 224),
+        "train_split": 0.8,
+        "val_split": 0.1,
+        "test_split": 0.1,
+        "augmentation": True
     }
 }
 
-# Keywords for accident detection (in both Bangla and English)
-ACCIDENT_KEYWORDS = {
-    "bangla": [
-        "দুর্ঘটনা", "আঘাত", "মৃত্যু", "জখম", "রাস্তা", "গাড়ি", "বাস", "ট্রাক",
-        "মোটরসাইকেল", "মারা গেছে", "আহত", "ধাক্কা", "সংঘর্ষ", "পড়ে গেছে",
-        "ট্রাফিক", "সড়ক", "হাইওয়ে", "মহাসড়ক", "ক্রাশ", "অ্যাক্সিডেন্ট"
-    ],
-    "english": [
-        "accident", "crash", "collision", "killed", "injured", "road", "car",
-        "bus", "truck", "motorcycle", "traffic", "highway", "fatal", "death",
-        "wounded", "hit", "run over", "overturned", "burned", "exploded"
-    ]
-}
-
-# Location keywords for extraction
-LOCATION_KEYWORDS = {
-    "bangla": [
-        "জেলায়", "উপজেলায়", "থানায়", "মহাসড়কে", "রাস্তায়", "সড়কে",
-        "হাইওয়েতে", "ব্রিজে", "ফ্লাইওভারে", "ইন্টারসেকশনে", "চৌরাস্তায়"
-    ],
-    "english": [
-        "district", "upazila", "thana", "highway", "road", "street",
-        "bridge", "flyover", "intersection", "crossing", "area"
-    ]
-}
-
-# Vehicle types for classification
-VEHICLE_TYPES = {
-    "bangla": {
-        "bus": ["বাস", "মিনিবাস", "লোকাল বাস"],
-        "truck": ["ট্রাক", "লরি", "পিকআপ"],
-        "car": ["গাড়ি", "কার", "মাইক্রো", "সিএনজি"],
-        "motorcycle": ["মোটরসাইকেল", "বাইক", "সাইকেল"],
-        "rickshaw": ["রিকশা", "অটোরিকশা"],
-        "train": ["ট্রেন", "রেলগাড়ি"]
+# Model configurations
+MODEL_CONFIG = {
+    "resnet50": {
+        "name": "ResNet-50",
+        "pretrained": True,
+        "num_classes": 3,  # Normal, Bacterial Pneumonia, Viral Pneumonia
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "layer4",
+        "input_size": (224, 224)
     },
-    "english": {
-        "bus": ["bus", "minibus", "local bus"],
-        "truck": ["truck", "lorry", "pickup"],
-        "car": ["car", "micro", "cng"],
-        "motorcycle": ["motorcycle", "bike", "cycle"],
-        "rickshaw": ["rickshaw", "auto-rickshaw"],
-        "train": ["train", "railway"]
+    "resnet101": {
+        "name": "ResNet-101",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "layer4",
+        "input_size": (224, 224)
+    },
+    "densenet121": {
+        "name": "DenseNet-121",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "denseblock4",
+        "input_size": (224, 224)
+    },
+    "densenet169": {
+        "name": "DenseNet-169",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "denseblock4",
+        "input_size": (224, 224)
+    },
+    "efficientnet_b0": {
+        "name": "EfficientNet-B0",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "features.7",
+        "input_size": (224, 224)
+    },
+    "efficientnet_b4": {
+        "name": "EfficientNet-B4",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "target_layer": "features.7",
+        "input_size": (224, 224)
+    },
+    "vit_base": {
+        "name": "Vision Transformer (Base)",
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.1,
+        "learning_rate": 1e-4,
+        "weight_decay": 1e-4,
+        "optimizer": "adam",
+        "scheduler": "cosine",
+        "patch_size": 16,
+        "embed_dim": 768,
+        "num_heads": 12,
+        "num_layers": 12,
+        "input_size": (224, 224)
     }
 }
 
-# Severity classification
-SEVERITY_LEVELS = {
-    "minor": ["minor", "light", "ছোট", "হালকা"],
-    "major": ["major", "serious", "বড়", "গুরুতর"],
-    "fatal": ["fatal", "death", "killed", "মৃত্যু", "মারা গেছে"]
+# Training configuration
+TRAINING_CONFIG = {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 1e-4,
+    "weight_decay": 1e-4,
+    "scheduler": "cosine",
+    "early_stopping": True,
+    "patience": 10,
+    "min_delta": 1e-4,
+    "cross_validation": True,
+    "k_folds": 5,
+    "mixed_precision": True,
+    "gradient_clipping": 1.0,
+    "class_weights": True,
+    "focal_loss": False,
+    "label_smoothing": 0.1
 }
 
-# NLP/LLM Configuration
-NLP_CONFIG = {
-    "model_name": "bert-base-multilingual-cased",  # For multilingual support
-    "max_length": 512,
-    "batch_size": 8,
-    "confidence_threshold": 0.7
+# Data augmentation configuration
+AUGMENTATION_CONFIG = {
+    "train": {
+        "horizontal_flip": True,
+        "vertical_flip": False,
+        "rotation_range": 10,
+        "width_shift_range": 0.1,
+        "height_shift_range": 0.1,
+        "zoom_range": 0.1,
+        "brightness_range": [0.9, 1.1],
+        "contrast_range": [0.9, 1.1],
+        "noise_factor": 0.05,
+        "elastic_transform": True,
+        "grid_distortion": True,
+        "optical_distortion": True
+    },
+    "val": {
+        "horizontal_flip": False,
+        "vertical_flip": False,
+        "rotation_range": 0,
+        "width_shift_range": 0,
+        "height_shift_range": 0,
+        "zoom_range": 0,
+        "brightness_range": [1.0, 1.0],
+        "contrast_range": [1.0, 1.0],
+        "noise_factor": 0,
+        "elastic_transform": False,
+        "grid_distortion": False,
+        "optical_distortion": False
+    }
 }
 
-# Scraping Configuration
-SCRAPING_CONFIG = {
-    "max_articles_per_source": 100,
-    "delay_between_requests": 2,  # seconds
-    "timeout": 30,
-    "retry_attempts": 3,
-    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+# Explainable AI configuration
+XAI_CONFIG = {
+    "methods": ["gradcam", "shap", "lime", "integrated_gradients", "attention_maps"],
+    "target_layer": "layer4",
+    "num_samples": 1000,
+    "visualization": True,
+    "save_explanations": True,
+    "explanation_dir": OUTPUTS_DIR / "explanations",
+    "gradcam": {
+        "target_layer": "layer4",
+        "colormap": "jet",
+        "alpha": 0.4
+    },
+    "shap": {
+        "background_samples": 100,
+        "nsamples": 100,
+        "l1_reg": "auto"
+    },
+    "lime": {
+        "num_samples": 1000,
+        "num_features": 10,
+        "top_labels": 3
+    },
+    "integrated_gradients": {
+        "steps": 50,
+        "baseline": "black"
+    },
+    "attention_maps": {
+        "head_attention": True,
+        "layer_attention": True,
+        "patch_attention": True
+    }
 }
 
-# Date range for analysis (last 5 years)
-END_DATE = datetime.now()
-START_DATE = END_DATE - timedelta(days=5*365)
-
-# Analysis Configuration
-ANALYSIS_CONFIG = {
-    "trend_period": "monthly",  # monthly, yearly, weekly
-    "top_locations_count": 10,
-    "visualization_format": "png",
-    "output_directory": "outputs"
+# Evaluation configuration
+EVALUATION_CONFIG = {
+    "metrics": ["accuracy", "precision", "recall", "f1", "auc_roc", "sensitivity", "specificity"],
+    "confusion_matrix": True,
+    "roc_curves": True,
+    "pr_curves": True,
+    "calibration_plots": True,
+    "confidence_histograms": True,
+    "statistical_tests": ["mcnemar", "wilcoxon", "friedman"],
+    "cross_validation": True,
+    "k_folds": 5,
+    "stratified": True,
+    "random_state": 42
 }
 
-# Translation Configuration
-TRANSLATION_CONFIG = {
-    "source_lang": "bn",
-    "target_lang": "en",
-    "fallback_service": "google"
+# Visualization configuration
+VISUALIZATION_CONFIG = {
+    "style": "seaborn-v0_8",
+    "figsize": (12, 8),
+    "dpi": 300,
+    "save_format": "png",
+    "color_palette": "viridis",
+    "font_size": 12,
+    "title_size": 14,
+    "label_size": 10,
+    "tick_size": 8,
+    "grid": True,
+    "transparent": False
 }
 
-# Logging Configuration
+# Logging configuration
 LOGGING_CONFIG = {
     "level": "INFO",
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    "file": "road_accident_analysis.log"
+    "file": LOGS_DIR / "pneumonia_detection.log",
+    "max_bytes": 10 * 1024 * 1024,  # 10MB
+    "backup_count": 5
 }
 
-# Create output directory if it doesn't exist
-os.makedirs(ANALYSIS_CONFIG["output_directory"], exist_ok=True)
+# Hardware configuration
+HARDWARE_CONFIG = {
+    "device": "auto",  # "auto", "cuda", "cpu"
+    "num_workers": 4,
+    "pin_memory": True,
+    "mixed_precision": True,
+    "gradient_accumulation_steps": 1
+}
+
+# Clinical validation configuration
+CLINICAL_CONFIG = {
+    "radiologist_evaluation": True,
+    "confidence_thresholds": [0.5, 0.7, 0.9],
+    "uncertainty_quantification": True,
+    "decision_support": True,
+    "region_of_interest": True,
+    "clinical_metrics": ["sensitivity", "specificity", "ppv", "npv", "accuracy"]
+}
+
+# Output configuration
+OUTPUT_CONFIG = {
+    "save_models": True,
+    "save_predictions": True,
+    "save_explanations": True,
+    "save_visualizations": True,
+    "save_reports": True,
+    "compression": True,
+    "overwrite": False
+}
+
+# API configuration (for web interface)
+API_CONFIG = {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "debug": False,
+    "workers": 4,
+    "timeout": 30,
+    "max_file_size": 10 * 1024 * 1024  # 10MB
+}
+
+# Environment variables
+ENV_VARS = {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4"
+}
+
+# Set environment variables
+for key, value in ENV_VARS.items():
+    if key not in os.environ:
+        os.environ[key] = str(value)
