@@ -1,333 +1,317 @@
-# Road Accident Analysis Pipeline for Bangladesh
+# Comparative Analysis of Deep Learning Models for Pneumonia Detection using Explainable AI
 
-A comprehensive, automated system for extracting, analyzing, and visualizing road accident data from Bangladeshi news sources using web scraping, Natural Language Processing (NLP), and Large Language Models (LLMs).
+A comprehensive study comparing state-of-the-art deep learning models for chest X-ray pneumonia detection with explainable AI techniques to provide interpretable and trustworthy medical AI systems.
 
 ## 🎯 Project Overview
 
-This pipeline automatically:
-- **Scrapes** accident-related news from major Bangladeshi media outlets (Prothom Alo, Daily Star, Ittefaq, etc.)
-- **Extracts** structured information using NLP and LLM techniques
-- **Translates** Bangla content to English when needed
-- **Stores** data in SQLite database and CSV formats
-- **Analyzes** trends and patterns over time
-- **Generates** comprehensive visualizations and reports
-- **Runs** on automated schedules for continuous monitoring
+This project implements a comparative analysis framework for pneumonia detection using:
+- **Multiple Deep Learning Models**: CNN, ResNet, DenseNet, EfficientNet, Vision Transformer
+- **Public Datasets**: Chest X-ray datasets with pneumonia annotations
+- **Explainable AI Techniques**: Grad-CAM, SHAP, LIME, Integrated Gradients
+- **Comprehensive Evaluation**: Accuracy, sensitivity, specificity, AUC-ROC, interpretability metrics
+- **Clinical Validation**: Radiologist-friendly visualizations and explanations
 
 ## 🚀 Key Features
 
-### 🔍 **Intelligent Data Extraction**
-- Multi-language support (Bangla and English)
-- Automatic translation using Google Translate API
-- Named Entity Recognition for location extraction
-- Rule-based and ML-based information extraction
-- Vehicle type classification
-- Severity level assessment
+### 🔬 **Multi-Model Comparison**
+- CNN architectures (VGG, ResNet, DenseNet, EfficientNet)
+- Vision Transformers (ViT, DeiT)
+- Custom architectures optimized for medical imaging
+- Ensemble methods for improved performance
 
-### 📊 **Comprehensive Analysis**
-- Monthly/yearly trend analysis
-- District-wise accident statistics
-- Severity distribution analysis
-- Fatalities vs injuries correlation
-- Most dangerous roads identification
-- Time-series forecasting capabilities
+### 🧠 **Explainable AI Integration**
+- **Grad-CAM**: Class activation mapping for CNN interpretability
+- **SHAP**: Shapley values for feature importance
+- **LIME**: Local interpretable model-agnostic explanations
+- **Integrated Gradients**: Attribution methods for deep networks
+- **Attention Visualization**: Transformer attention maps
 
-### 📈 **Rich Visualizations**
-- Interactive maps with accident locations
-- Monthly trend plots
-- District-wise heatmaps
-- Severity distribution charts
-- Word clouds from accident descriptions
-- Fatalities vs injuries scatter plots
+### 📊 **Comprehensive Evaluation**
+- Standard metrics (Accuracy, Precision, Recall, F1-Score)
+- Medical metrics (Sensitivity, Specificity, AUC-ROC)
+- Interpretability metrics (Faithfulness, Monotonicity)
+- Statistical significance testing
+- Cross-validation and robustness analysis
 
-### 🤖 **Full Automation**
-- Scheduled weekly updates
-- Automated data cleanup
-- Database backups
-- Error handling and recovery
-- Comprehensive logging
+### 🏥 **Clinical Relevance**
+- Radiologist-friendly visualizations
+- Region-of-interest highlighting
+- Confidence scoring with uncertainty quantification
+- Clinical decision support integration
+
+## 📋 Datasets
+
+### Primary Dataset: Chest X-Ray Images (Pneumonia)
+- **Source**: [Chest X-Ray Images (Pneumonia) - Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)
+- **Size**: ~5,856 images
+- **Classes**: Normal, Bacterial Pneumonia, Viral Pneumonia
+- **Format**: JPEG images (various sizes)
+- **License**: CC BY 4.0
+
+### Additional Datasets:
+1. **NIH Chest X-ray14**: 112,120 images, 14 disease classes
+2. **CheXpert**: 224,316 images, 14 observations
+3. **MIMIC-CXR**: 377,110 images, 14 labels
 
 ## 🏗️ System Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   News Sources  │───▶│   Web Scraper   │───▶│  Data Manager   │
+│   Datasets      │───▶│   Data Pipeline │───▶│  Model Training │
 │                 │    │                 │    │                 │
-│ • Prothom Alo   │    │ • Rate Limiting │    │ • SQLite DB     │
-│ • Daily Star    │    │ • Error Handling│    │ • CSV Export    │
-│ • Ittefaq       │    │ • Multi-source  │    │ • Data Backup   │
-│ • Jugantor      │    │ • Content Filter│    │ • Cleanup       │
+│ • Chest X-Ray   │    │ • Preprocessing │    │ • CNN Models    │
+│ • NIH CXR14     │    │ • Augmentation  │    │ • ViT Models    │
+│ • CheXpert      │    │ • Normalization │    │ • Custom Models │
+│ • MIMIC-CXR     │    │ • Splitting     │    │ • Ensembles     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │                        │
                                 ▼                        ▼
                        ┌─────────────────┐    ┌─────────────────┐
-                       │   NLP/LLM       │    │   Trend Analyzer│
-                       │   Extractor     │    │                 │
-                       │                 │    │ • Statistics    │
-                       │ • Translation   │    │ • Visualizations│
-                       │ • NER           │    │ • Reports       │
-                       │ • Classification│    │ • Insights      │
-                       │ • Rule-based    │    │ • Maps          │
+                       │   Evaluation    │    │   Explainable   │
+                       │   Framework     │    │   AI Pipeline   │
+                       │                 │    │                 │
+                       │ • Metrics       │    │ • Grad-CAM      │
+                       │ • Cross-val     │    │ • SHAP          │
+                       │ • Statistical   │    │ • LIME          │
+                       │ • Robustness    │    │ • Attention     │
+                       └─────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Visualization │    │   Clinical      │
+                       │   & Reporting   │    │   Integration   │
+                       │                 │    │                 │
+                       │ • Results Plots │    │ • Radiologist   │
+                       │ • Comparison    │    │   Interface     │
+                       │ • Heatmaps      │    │ • Decision      │
+                       │ • Reports       │    │   Support       │
                        └─────────────────┘    └─────────────────┘
 ```
 
 ## 📋 Prerequisites
 
 - Python 3.8 or higher
-- Internet connection for web scraping
-- Sufficient disk space for database and visualizations
+- CUDA-compatible GPU (recommended for training)
+- 16GB+ RAM
+- 50GB+ disk space for datasets and models
 
 ## 🛠️ Installation
 
 1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd road-accident-analysis
+cd pneumonia-detection-xai
 ```
 
-2. **Install dependencies:**
+2. **Create virtual environment:**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Download NLTK data:**
-```python
-python -c "import nltk; nltk.download('punkt')"
-```
-
-4. **Set up output directory:**
+4. **Download datasets:**
 ```bash
-mkdir outputs
+python scripts/download_datasets.py
 ```
 
 ## 🚀 Quick Start
 
-### Basic Usage
-
-1. **Run the complete pipeline:**
+### 1. Data Preparation
 ```bash
-python main.py
+python scripts/prepare_data.py --dataset chest_xray --output_dir data/
 ```
 
-2. **Run with specific options:**
+### 2. Model Training
 ```bash
-# Skip scraping (use existing data)
-python main.py --no-scrape
-
-# Skip analysis (only scrape and store)
-python main.py --no-analysis
-
-# Skip visualizations
-python main.py --no-viz
+python train.py --model resnet50 --dataset chest_xray --epochs 50
 ```
 
-### Advanced Usage
-
-1. **Set up automated scheduling:**
+### 3. Explainable AI Analysis
 ```bash
-python main.py --mode schedule
+python explain.py --model_path models/resnet50_best.pth --method gradcam
 ```
 
-2. **Generate monthly report:**
+### 4. Comparative Analysis
 ```bash
-python main.py --mode report --year 2024 --month 1
+python compare_models.py --models resnet50 densenet121 efficientnet_b0 vit_base
 ```
 
-3. **Check system status:**
-```bash
-python main.py --mode status
-```
+## 📊 Methodology
 
-4. **Clean up old data:**
-```bash
-python main.py --mode cleanup --days-keep 180
-```
+### Phase 1: Data Preparation
+1. **Dataset Collection**: Download and organize chest X-ray datasets
+2. **Preprocessing**: 
+   - Image resizing and normalization
+   - Data augmentation (rotation, scaling, brightness)
+   - Train/validation/test splitting
+3. **Quality Control**: Remove corrupted images, verify annotations
 
-5. **Create database backup:**
-```bash
-python main.py --mode backup
-```
+### Phase 2: Model Development
+1. **Baseline Models**:
+   - ResNet-50, ResNet-101
+   - DenseNet-121, DenseNet-169
+   - EfficientNet-B0, EfficientNet-B4
+   - Vision Transformer (ViT-Base)
 
-## 📊 Output Files
+2. **Custom Architectures**:
+   - Medical-specific attention mechanisms
+   - Multi-scale feature fusion
+   - Uncertainty quantification layers
 
-The pipeline generates several types of output files in the `outputs/` directory:
+3. **Training Strategy**:
+   - Transfer learning from ImageNet
+   - Learning rate scheduling
+   - Early stopping and model checkpointing
+   - Cross-validation
 
-### 📈 Visualizations
-- `monthly_trends_YYYYMM_YYYYMM.png` - Monthly accident trends
-- `district_heatmap_YYYYMM_YYYYMM.png` - District-wise accident heatmap
-- `severity_distribution_YYYYMM_YYYYMM.png` - Severity distribution charts
-- `fatalities_injuries_scatter_YYYYMM_YYYYMM.png` - Fatalities vs injuries scatter plot
-- `wordcloud_YYYYMM_YYYYMM.png` - Word cloud from accident descriptions
-- `accident_map_YYYYMM_YYYYMM.html` - Interactive map of accident locations
+### Phase 3: Explainable AI Implementation
+1. **Grad-CAM**: Generate class activation maps
+2. **SHAP**: Calculate feature importance scores
+3. **LIME**: Local interpretable explanations
+4. **Integrated Gradients**: Attribution analysis
+5. **Attention Visualization**: Transformer attention maps
 
-### 📄 Data Exports
-- `accident_data_YYYYMMDD_HHMMSS.csv` - Structured accident data
-- `road_accidents.db` - SQLite database with all data
-- `road_accidents.db.backup_YYYYMMDD_HHMMSS` - Database backups
+### Phase 4: Evaluation Framework
+1. **Performance Metrics**:
+   - Accuracy, Precision, Recall, F1-Score
+   - Sensitivity, Specificity, AUC-ROC
+   - Cohen's Kappa, Matthews Correlation
 
-### 📋 Reports
-- Console output with summary statistics
-- Log files with detailed execution information
+2. **Interpretability Metrics**:
+   - Faithfulness: How well explanations match model behavior
+   - Monotonicity: Consistency of explanations
+   - Sparsity: Conciseness of explanations
 
-## ⚙️ Configuration
+3. **Statistical Analysis**:
+   - McNemar's test for model comparison
+   - Confidence intervals
+   - Effect size calculations
 
-The system is highly configurable through `config.py`:
+### Phase 5: Clinical Validation
+1. **Radiologist Evaluation**: Expert review of explanations
+2. **Region-of-Interest Analysis**: Focus on clinically relevant areas
+3. **Confidence Scoring**: Uncertainty quantification
+4. **Decision Support**: Integration with clinical workflow
 
-### News Sources
+## 📈 Expected Results
+
+### Performance Comparison
+| Model | Accuracy | Sensitivity | Specificity | AUC-ROC | F1-Score |
+|-------|----------|-------------|-------------|---------|----------|
+| ResNet-50 | 0.89 | 0.91 | 0.87 | 0.94 | 0.88 |
+| DenseNet-121 | 0.91 | 0.93 | 0.89 | 0.95 | 0.90 |
+| EfficientNet-B4 | 0.93 | 0.94 | 0.92 | 0.96 | 0.92 |
+| ViT-Base | 0.92 | 0.93 | 0.91 | 0.95 | 0.91 |
+
+### Interpretability Analysis
+- **Grad-CAM**: Highlights lung regions and infiltrates
+- **SHAP**: Identifies key radiographic features
+- **LIME**: Provides local explanations for individual cases
+- **Attention Maps**: Shows model focus areas
+
+## 🔧 Configuration
+
+### Model Configuration
 ```python
-NEWS_SOURCES = {
-    "prothom_alo": {
-        "base_url": "https://www.prothomalo.com",
-        "search_url": "https://www.prothomalo.com/search?q={query}",
-        "language": "bangla",
-        # ... selectors and configuration
+MODEL_CONFIG = {
+    "resnet50": {
+        "pretrained": True,
+        "num_classes": 3,
+        "dropout": 0.5,
+        "learning_rate": 1e-4
+    },
+    "vit_base": {
+        "patch_size": 16,
+        "embed_dim": 768,
+        "num_heads": 12,
+        "num_layers": 12
     }
 }
 ```
 
-### Keywords
+### Training Configuration
 ```python
-ACCIDENT_KEYWORDS = {
-    "bangla": ["দুর্ঘটনা", "আঘাত", "মৃত্যু", "জখম", "রাস্তা"],
-    "english": ["accident", "crash", "collision", "killed", "injured"]
+TRAINING_CONFIG = {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 1e-4,
+    "weight_decay": 1e-4,
+    "scheduler": "cosine",
+    "early_stopping": True
 }
 ```
 
-### Analysis Settings
+### XAI Configuration
 ```python
-ANALYSIS_CONFIG = {
-    "trend_period": "monthly",
-    "top_locations_count": 10,
-    "visualization_format": "png",
-    "output_directory": "outputs"
+XAI_CONFIG = {
+    "methods": ["gradcam", "shap", "lime", "integrated_gradients"],
+    "target_layer": "layer4",
+    "num_samples": 1000,
+    "visualization": True
 }
 ```
 
-## 🔧 Customization
+## 📊 Output Structure
 
-### Adding New News Sources
-
-1. Add source configuration to `config.py`:
-```python
-"new_source": {
-    "base_url": "https://example.com",
-    "search_url": "https://example.com/search?q={query}",
-    "language": "english",
-    "selectors": {
-        "article_links": ".article a",
-        "title": "h1.title",
-        "content": ".content",
-        "date": ".published-date"
-    }
-}
+```
+outputs/
+├── models/
+│   ├── resnet50_best.pth
+│   ├── densenet121_best.pth
+│   └── vit_base_best.pth
+├── results/
+│   ├── performance_comparison.csv
+│   ├── confusion_matrices/
+│   └── roc_curves/
+├── explanations/
+│   ├── gradcam/
+│   ├── shap/
+│   ├── lime/
+│   └── attention_maps/
+├── visualizations/
+│   ├── model_comparison.png
+│   ├── feature_importance.png
+│   └── explanation_heatmaps.png
+└── reports/
+    ├── comprehensive_analysis.pdf
+    └── clinical_validation.pdf
 ```
 
-2. Update the scraper to handle the new source format if needed.
+## 🔍 Key Research Questions
 
-### Modifying Extraction Rules
+1. **Performance**: Which deep learning architecture achieves the best pneumonia detection performance?
+2. **Interpretability**: How do different XAI methods compare in providing clinically meaningful explanations?
+3. **Robustness**: How robust are the models across different datasets and imaging conditions?
+4. **Clinical Utility**: Do the explanations improve radiologist confidence and diagnostic accuracy?
+5. **Generalization**: How well do models generalize to unseen data and different populations?
 
-Edit the patterns in `nlp/information_extractor.py`:
-- Number extraction patterns
-- Date parsing patterns
-- Location extraction rules
-- Vehicle type classification
+## 🏥 Clinical Impact
 
-### Custom Visualizations
+- **Improved Diagnosis**: Faster and more accurate pneumonia detection
+- **Reduced Workload**: Automated screening of normal cases
+- **Better Explanations**: Transparent AI decisions for clinical trust
+- **Educational Tool**: Teaching aid for radiology trainees
+- **Quality Assurance**: Second opinion for radiologists
 
-Add new visualization methods to `analysis/trend_analyzer.py`:
-```python
-def _create_custom_plot(self, start_date, end_date):
-    # Your custom visualization code
-    pass
-```
+## 🔒 Ethical Considerations
 
-## 📈 Sample Output
+- **Data Privacy**: Anonymized medical images only
+- **Bias Mitigation**: Diverse dataset representation
+- **Clinical Validation**: Expert review of AI explanations
+- **Transparency**: Open-source implementation and methodology
+- **Responsible AI**: Uncertainty quantification and confidence scoring
 
-### Summary Statistics
-```
-PIPELINE RESULTS
-==================================================
-Success: True
-Scraped Articles: 45
-Extracted Records: 38
-Stored Records: 38
-Visualization Files: 6
-
-SUMMARY STATISTICS:
-Total Accidents: 156
-Total Fatalities: 89
-Total Injuries: 234
-Fatal Accidents: 23
-Major Accidents: 67
-Minor Accidents: 66
-```
-
-### System Status
-```
-SYSTEM STATUS
-==================================================
-system_status: operational
-last_update: 2024-01-15 14:30:25
-recent_records_30_days: 45
-total_records: 156
-database_size_mb: 2.34
-output_directory: outputs
-database_path: road_accidents.db
-```
-
-## 🔍 Data Schema
-
-The extracted data includes the following fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `date` | DateTime | Accident date |
-| `title` | String | News article title |
-| `text` | String | Article content (truncated) |
-| `translated_text` | String | English translation |
-| `district` | String | District name |
-| `upazila` | String | Upazila name |
-| `road` | String | Road/highway name |
-| `specific_location` | String | Specific location details |
-| `fatalities` | Integer | Number of fatalities |
-| `injuries` | Integer | Number of injuries |
-| `vehicle_types` | String | Comma-separated vehicle types |
-| `severity` | String | Accident severity (fatal/major/minor) |
-| `source_url` | String | Source article URL |
-| `source_name` | String | News source name |
-| `language` | String | Original language |
-| `extraction_confidence` | Float | Extraction confidence score |
-
-## 🚨 Error Handling
-
-The system includes comprehensive error handling:
-
-- **Network errors**: Automatic retry with exponential backoff
-- **Parsing errors**: Graceful degradation with fallback methods
-- **Database errors**: Transaction rollback and logging
-- **Translation errors**: Fallback to original text
-- **Scheduler errors**: Automatic recovery and restart
-
-## 📝 Logging
-
-Detailed logs are written to `road_accident_analysis.log`:
-- Execution time tracking
-- Error details and stack traces
-- Performance metrics
-- Data processing statistics
-
-## 🔒 Privacy and Ethics
-
-- Only publicly available news articles are scraped
-- No personal information is extracted or stored
-- Respects robots.txt and rate limiting
-- Data is used for research and analysis purposes only
-
-## 🤝 Contributing
+## 📝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
+3. Implement your changes
+4. Add tests and documentation
 5. Submit a pull request
 
 ## 📄 License
@@ -336,17 +320,18 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- News sources for providing public access to accident reports
-- Open-source NLP and ML libraries
-- Research community for road safety analysis methodologies
+- Dataset providers and contributors
+- Open-source deep learning frameworks
+- Medical imaging research community
+- Radiologists for clinical validation
 
 ## 📞 Support
 
 For questions, issues, or contributions:
 - Create an issue on GitHub
-- Contact the development team
+- Contact the research team
 - Check the documentation and examples
 
 ---
 
-**Note**: This system is designed for research and analysis purposes. Always verify extracted data and use responsibly for road safety initiatives.
+**Note**: This system is designed for research and educational purposes. Clinical deployment requires additional validation and regulatory approval.
